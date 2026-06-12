@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Safety Incident Tracker | Barton Malow</title>
+  <style>
+    :root {
+      --bm-blue:#00263A; --bm-orange:#E35205; --bm-white:#FFFFFF; --bm-text:#1A1A1A;
+      --bm-steel:#4F758B; --bm-rebar:#A5BAC9; --bm-slate:#7A97AB; --bm-craftsman:#264061;
+      --bm-rebar-20:rgba(165,186,201,0.20);
+      --bm-bg:#F4F6F8; --bm-surface:#FFFFFF; --bm-border:#A5BAC9;
+      --t-yellow:#FFB71B; --t-blue:#009ADE; --t-green:#6BA43A; --t-red:#C40D3C;
+      --radius:3px; --shadow:0 1px 3px rgba(0,0,0,0.10);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'URW DIN', Arial, sans-serif;
+      background: var(--bm-bg);
+      color: var(--bm-text);
+      min-height: 100vh;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--bm-blue);
+      color: var(--bm-white);
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      border-bottom: 3px solid var(--bm-orange);
+    }
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .header-logo {
+      width: 38px;
+      height: 38px;
+      background: var(--bm-orange);
+      border-radius: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Industry Black', 'Arial Black', Arial, sans-serif;
+      font-size: 18px;
+      color: #fff;
+      letter-spacing: -1px;
+    }
+    .header-title {
+      font-family: 'Industry Black', 'Arial Black', Arial, sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.04em;
+      color: var(--bm-white);
+    }
+    .header-subtitle {
+      font-size: 12px;
+      color: var(--bm-rebar);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .header-date {
+      font-size: 13px;
+      color: var(--bm-rebar);
+    }
+
+    /* MAIN LAYOUT */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* SECTION HEADERS */
+    .section-label {
+      font-family: 'Industry Demi', Arial, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--bm-steel);
+      border-top: 2px solid var(--bm-orange);
+      padding-top: 8px;
+      margin-bottom: 16px;
+    }
+
+    /* KPI CARDS */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 36px;
+    }
+    .kpi-card {
+      background: var(--bm-surface);
+      border: 1px solid var(--bm-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px 18px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .kpi-card.total {
+      border-top: 3px solid var(--bm-blue);
+    }
+    .kpi-card.near-miss {
+      border-top: 3px solid var(--t-yellow);
+    }
+    .kpi-card.first-aid {
+      border-top: 3px solid var(--t-blue);
+    }
+    .kpi-card.recordable {
+      border-top: 3px solid var(--t-red);
+    }
+    .kpi-card.property {
+      border-top: 3px solid var(--bm-steel);
+    }
+    .kpi-card.environmental {
+      border-top: 3px solid var(--t-green);
+    }
+    .kpi-number {
+      font-family: 'Industry Black', 'Arial Black', Arial, sans-serif;
+      font-size: 36px;
+      color: var(--bm-blue);
+      line-height: 1;
+    }
+    .kpi-label {
+      font-size: 12px;
+      color: var(--bm-steel);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* TWO-COLUMN LAYOUT */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 800px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+
+    /* FORM CARD */
+    .form-card {
+      background: var(--bm-surface);
+      border: 1px solid var(--bm-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+    .form-card h2 {
+      font-family: 'Industry Demi', Arial, sans-serif;
+      font-size: 15px;
+      color: var(--bm-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--bm-border);
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--bm-steel);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 5px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 9px 11px;
+      border: 1px solid var(--bm-border);
+      border-radius: var(--radius);
+      font-family: 'URW DIN', Arial, sans-serif;
+      font-size: 14px;
+      color: var(--bm-text);
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--bm-blue);
+      box-shadow: 0 0 0 2px rgba(0,38,58,0.15);
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    .btn-primary {
+      background: var(--bm-blue);
+      color: var(--bm-white);
+      border: none;
+      border-radius: var(--radius);
+      padding: 11px 22px;
+      font-family: 'URW DIN', Arial, sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 6px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+      background: var(--bm-craftsman);
+      outline: none;
+    }
+
+    /* INCIDENT TABLE */
+    .table-card {
+      background: var(--bm-surface);
+      border: 1px solid var(--bm-border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .table-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--bm-border);
+    }
+    .table-card-header h2 {
+      font-family: 'Industry Demi', Arial, sans-serif;
+      font-size: 15px;
+      color: var(--bm-blue);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .filter-select {
+      width: auto;
+      font-size: 13px;
+      padding: 6px 10px;
+    }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr {
+      background: var(--bm-blue);
+      color: var(--bm-white);
+    }
+    thead th {
+      padding: 11px 14px;
+      text-align: left;
+      font-family: 'Industry Demi', Arial, sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+    tbody tr:nth-child(even) {
+      background: var(--bm-rebar-20);
+    }
+    tbody tr:hover {
+      background: rgba(0,38,58,0.06);
+    }
+    tbody td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--bm-border);
+      vertical-align: top;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 2px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+    }
+    .badge-near-miss   { background: rgba(255,183,27,0.18);  color: #7a5800; }
+    .badge-first-aid   { background: rgba(0,154,222,0.15);   color: #005a8a; }
+    .badge-recordable  { background: rgba(196,13,60,0.13);   color: #8b0022; }
+    .badge-property    { background: rgba(79,117,139,0.15);  color: #264061; }
+    .badge-environmental { background: rgba(107,164,58,0.15); color: #3a6010; }
+
+    .btn-delete {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--bm-rebar);
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: var(--radius);
+      transition: color 0.15s;
+    }
+    .btn-delete:hover { color: var(--t-red); }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--bm-steel);
+      font-size: 14px;
+    }
+    .empty-state span {
+      display: block;
+      font-size: 36px;
+      margin-bottom: 10px;
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      background: var(--bm-blue);
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+      z-index: 999;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 12px;
+      color: var(--bm-rebar);
+      border-top: 1px solid var(--bm-border);
+      margin-top: 48px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <div class="header-logo">BM</div>
+    <div>
+      <div class="header-title">Barton Malow</div>
+      <div class="header-subtitle">Safety Incident Tracker</div>
+    </div>
+  </div>
+  <div class="header-date" id="headerDate"></div>
+</header>
+
+<main>
+
+  <div class="section-label">Incident Summary</div>
+  <div class="kpi-grid">
+    <div class="kpi-card total">
+      <div class="kpi-number" id="kpi-total">0</div>
+      <div class="kpi-label">Total Incidents</div>
+    </div>
+    <div class="kpi-card near-miss">
+      <div class="kpi-number" id="kpi-near-miss">0</div>
+      <div class="kpi-label">Near Miss</div>
+    </div>
+    <div class="kpi-card first-aid">
+      <div class="kpi-number" id="kpi-first-aid">0</div>
+      <div class="kpi-label">First Aid</div>
+    </div>
+    <div class="kpi-card recordable">
+      <div class="kpi-number" id="kpi-recordable">0</div>
+      <div class="kpi-label">Recordable</div>
+    </div>
+    <div class="kpi-card property">
+      <div class="kpi-number" id="kpi-property">0</div>
+      <div class="kpi-label">Property Damage</div>
+    </div>
+    <div class="kpi-card environmental">
+      <div class="kpi-number" id="kpi-environmental">0</div>
+      <div class="kpi-label">Environmental</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+
+    <!-- INCIDENT LOG -->
+    <div>
+      <div class="section-label">Incident Log</div>
+      <div class="table-card">
+        <div class="table-card-header">
+          <h2>All Incidents</h2>
+          <select class="filter-select" id="filterType" onchange="renderTable()">
+            <option value="">All Types</option>
+            <option value="Near Miss">Near Miss</option>
+            <option value="First Aid">First Aid</option>
+            <option value="Recordable">Recordable</option>
+            <option value="Property Damage">Property Damage</option>
+            <option value="Environmental">Environmental</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Reported By</th>
+                <th>Description</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="incidentTableBody"></tbody>
+          </table>
+          <div id="emptyState" class="empty-state" style="display:none">
+            <span>&#128203;</span>
+            No incidents recorded yet. Use the form to log one.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD INCIDENT FORM -->
+    <div>
+      <div class="section-label">Log New Incident</div>
+      <div class="form-card">
+        <h2>Incident Details</h2>
+        <form id="incidentForm" novalidate>
+          <div class="form-group">
+            <label for="incDate">Date &amp; Time</label>
+            <input type="datetime-local" id="incDate" required />
+          </div>
+          <div class="form-group">
+            <label for="incType">Incident Type</label>
+            <select id="incType" required>
+              <option value="">-- Select Type --</option>
+              <option value="Near Miss">Near Miss</option>
+              <option value="First Aid">First Aid</option>
+              <option value="Recordable">Recordable</option>
+              <option value="Property Damage">Property Damage</option>
+              <option value="Environmental">Environmental</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="incLocation">Location / Area</label>
+            <input type="text" id="incLocation" placeholder="e.g. Level 3 – East Wing" required />
+          </div>
+          <div class="form-group">
+            <label for="incReporter">Reported By</label>
+            <input type="text" id="incReporter" placeholder="Full name" required />
+          </div>
+          <div class="form-group">
+            <label for="incDesc">Description</label>
+            <textarea id="incDesc" placeholder="Briefly describe what happened..." required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="incAction">Corrective Action Taken</label>
+            <textarea id="incAction" placeholder="What was done to address this?" style="min-height:60px"></textarea>
+          </div>
+          <button type="submit" class="btn-primary">&#43; Log Incident</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  &copy; <span id="footerYear"></span> Barton Malow Company. All rights reserved.
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ---- DATA ----
+  const STORAGE_KEY = 'bm_safety_incidents';
+
+  function loadIncidents() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+    catch(e) { return []; }
+  }
+
+  function saveIncidents(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  // ---- UTILS ----
+  function typeKey(type) {
+    return type.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  function badgeClass(type) {
+    const map = {
+      'Near Miss': 'badge-near-miss',
+      'First Aid': 'badge-first-aid',
+      'Recordable': 'badge-recordable',
+      'Property Damage': 'badge-property',
+      'Environmental': 'badge-environmental'
+    };
+    return map[type] || '';
+  }
+
+  function formatDateTime(dtStr) {
+    if (!dtStr) return '';
+    const d = new Date(dtStr);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' })
+      + ' ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // ---- KPI ----
+  function updateKPIs(incidents) {
+    const types = ['Near Miss','First Aid','Recordable','Property Damage','Environmental'];
+    document.getElementById('kpi-total').textContent = incidents.length;
+    types.forEach(type => {
+      const id = 'kpi-' + typeKey(type);
+      const el = document.getElementById(id);
+      if (el) el.textContent = incidents.filter(i => i.type === type).length;
+    });
+  }
+
+  // ---- TABLE ----
+  function renderTable() {
+    const incidents = loadIncidents();
+    const filter = document.getElementById('filterType').value;
+    const filtered = filter ? incidents.filter(i => i.type === filter) : incidents;
+    const tbody = document.getElementById('incidentTableBody');
+    const empty = document.getElementById('emptyState');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '';
+      empty.style.display = 'block';
+    } else {
+      empty.style.display = 'none';
+      tbody.innerHTML = filtered.slice().reverse().map(inc => `
+        <tr>
+          <td style="white-space:nowrap">${formatDateTime(inc.date)}</td>
+          <td><span class="badge ${badgeClass(inc.type)}">${inc.type}</span></td>
+          <td>${escHtml(inc.location)}</td>
+          <td>${escHtml(inc.reporter)}</td>
+          <td>${escHtml(inc.description)}${inc.action ? '<br><em style="color:var(--bm-steel);font-size:12px">Action: ' + escHtml(inc.action) + '</em>' : ''}</td>
+          <td><button class="btn-delete" title="Delete" onclick="deleteIncident('${inc.id}')">&times;</button></td>
+        </tr>
+      `).join('');
+    }
+
+    updateKPIs(incidents);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ---- DELETE ----
+  function deleteIncident(id) {
+    if (!confirm('Remove this incident from the log?')) return;
+    const incidents = loadIncidents().filter(i => i.id !== id);
+    saveIncidents(incidents);
+    renderTable();
+    showToast('Incident removed.');
+  }
+
+  // ---- FORM SUBMIT ----
+  document.getElementById('incidentForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const date = document.getElementById('incDate').value;
+    const type = document.getElementById('incType').value;
+    const location = document.getElementById('incLocation').value.trim();
+    const reporter = document.getElementById('incReporter').value.trim();
+    const description = document.getElementById('incDesc').value.trim();
+    const action = document.getElementById('incAction').value.trim();
+
+    if (!date || !type || !location || !reporter || !description) {
+      showToast('Please fill in all required fields.');
+      return;
+    }
+
+    const incident = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      date, type, location, reporter, description, action
+    };
+
+    const incidents = loadIncidents();
+    incidents.push(incident);
+    saveIncidents(incidents);
+
+    this.reset();
+    // Reset datetime to now
+    setDefaultDate();
+
+    renderTable();
+    showToast('\u2713 Incident logged successfully.');
+  });
+
+  // ---- INIT ----
+  function setDefaultDate() {
+    const now = new Date();
+    const local = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+    document.getElementById('incDate').value = local.toISOString().slice(0,16);
+  }
+
+  function initHeader() {
+    const now = new Date();
+    document.getElementById('headerDate').textContent =
+      now.toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+    document.getElementById('footerYear').textContent = now.getFullYear();
+  }
+
+  setDefaultDate();
+  initHeader();
+  renderTable();
+</script>
+</body>
+</html>
