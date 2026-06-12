@@ -1,0 +1,96 @@
+name: Deploy to AWS
+
+# Trigger only when a pull request targeting the integration branch is closed
+# AND was actually merged (closed-without-merge is filtered out by the job's
+# `if` guard below). workflow_dispatch lets a maintainer re-run the deploy
+# from the Actions tab without making a code change.
+on:
+  pull_request:
+    types: [ closed ]
+    branches: [ dev ]
+  workflow_dispatch:
+
+# OIDC requires id-token write. Contents read covers the checkout step.
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.pull_request.base.ref || github.ref }}
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-2
+  AWS_ROLE_ARN: arn:aws:iam::326641643444:role/GitHubActionsAppBuilderDeploy
+  BUCKET: barton-malow-generated-apps
+  DISTRIBUTION_ID: E33FADBB1JU0JC
+  PUBLIC_HOST: d3vbz4w8v0cyxg.cloudfront.net
+  APP_PATH: ${{ github.event.repository.name }}
+
+jobs:
+  deploy:
+    # PR-closed event also fires when a PR is closed WITHOUT merging — skip those.
+    # Manual runs (workflow_dispatch) always proceed.
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout merged state of dev
+        uses: actions/checkout@v4
+        with:
+          # On pull_request:closed the default checkout is the PR head SHA (the
+          # pre-merge state). We want the post-merge state of the base branch.
+          ref: ${{ github.event.pull_request.base.ref || github.ref_name }}
+
+      - name: Detect framework and build
+        id: build
+        run: |
+          if [ -f package.json ] && grep -q '"build"' package.json; then
+            echo "Detected npm project — installing and building."
+            if [ -f package-lock.json ]; then npm ci; else npm install; fi
+            npm run build
+            if [ -d dist ]; then
+              echo "out=dist" >> "$GITHUB_OUTPUT"
+            elif [ -d build ]; then
+              echo "out=build" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error::Build completed but no dist/ or build/ folder found."
+              exit 1
+            fi
+          else
+            echo "Static HTML project — using repo root as deploy directory."
+            echo "out=." >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync "${{ steps.build.outputs.out }}" "s3://${{ env.BUCKET }}/${{ env.APP_PATH }}/" \
+            --delete \
+            --exclude '.git/*' \
+            --exclude '.github/*' \
+            --exclude 'node_modules/*' \
+            --exclude '.gitignore' \
+            --exclude 'README.md' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json' \
+            --exclude 'tsconfig.json'
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ env.DISTRIBUTION_ID }}" \
+            --paths "/${{ env.APP_PATH }}/*"
+
+      - name: Publish deploy URL
+        run: |
+          URL="https://${{ env.PUBLIC_HOST }}/${{ env.APP_PATH }}/"
+          echo "## Deployed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "App is live at: [$URL]($URL)" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "CloudFront invalidation may take 30-60 seconds to propagate." >> "$GITHUB_STEP_SUMMARY"
